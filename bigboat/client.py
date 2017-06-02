@@ -169,7 +169,7 @@ class Client_v2(Client):
         return [self._format_app(app) for app in request.json()]
 
     def get_app(self, name, version):
-        request = self._get('app/{}/{}'.format(name, version))
+        request = self._get('apps/{}/{}'.format(name, version))
         if request.status_code == 404:
             return None
 
@@ -177,15 +177,72 @@ class Client_v2(Client):
 
     def update_app(self, name, version):
         try:
-            request = self._put('app/{}/{}'.format(name, version))
+            request = self._put('apps/{}/{}'.format(name, version))
         except requests.exceptions.ConnectionError:
             return None
 
         return self._format_app(request.json())
 
     def delete_app(self, name, version):
-        request = self._delete('app/{}/{}'.format(name, version))
+        request = self._delete('apps/{}/{}'.format(name, version))
         if request.status_code == 404:
+            return False
+
+        return True
+
+    def get_compose(self, name, version, file_name):
+        """
+        Retrieve a docker compose or bigboat compose file for the application.
+
+        Args:
+            name (str): The name of the application
+            version (str): The version of the application
+            file_name (str): 'dockerCompose' or 'bigboatCompose'
+
+        Returns:
+            :obj:`str` or `None`: The application definition's docker compose
+            file contents if the application was found, or `None` if the
+            definition does not exist.
+        """
+
+        path = 'apps/{}/{}/files/{}'.format(name, version, file_name)
+        request = self._get(path)
+        if request.status_code == 404:
+            return None
+
+        content_type = request.headers.get('content-type')
+        if content_type not in ('text/plain', 'text/yaml'):
+            return None
+
+        return request.text
+
+    def update_compose(self, name, version, file_name, content):
+        """
+        Update a docker compose or bigboat compose file for the application.
+
+        Args:
+            name (str): The name of the application
+            version (str): The version of the application
+            file_name (str): 'dockerCompose' or 'bigboatCompose'
+            content (str): The file contents
+
+        Returns:
+            bool: Whether the compose fille was successfully updated.
+
+        Raises:
+        """
+
+        path = 'apps/{}/{}/files/{}'.format(name, version, file_name)
+        request = self._put(path, content_type='text/plain', data=content)
+        if request.status_code == 404:
+            return False
+
+        # Bad Request should raise an exception
+        if request.status_code == 400:
+            response = request.json()
+            raise ValueError(response['message'])
+
+        if request.status_code != 201:
             return False
 
         return True
