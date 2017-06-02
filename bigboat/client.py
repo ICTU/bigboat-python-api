@@ -395,3 +395,13 @@ class Client_v2(Client):
         self._check_bad_request(request)
 
         return self._format_instance(request.json())
+
+    def statuses(self):
+        """
+        Retrieve all status items reported by BigBoat.
+
+        Returns:
+            :obj:`list` of :obj:`dict`: The status items
+        """
+
+        return self._get('status').json()
