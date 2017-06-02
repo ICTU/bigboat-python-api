@@ -19,6 +19,7 @@ limitations under the License.
 import requests
 import yaml
 from .application import Application
+from .instance import Instance
 
 class Client(object):
     """
@@ -56,8 +57,9 @@ class Client(object):
             version (str): The version of the application
 
         Returns:
-            :obj:`application.Application` or `None`: The application definition
-            if it was found or `None` if the definition does not exist.
+            :obj:`bigboat.application.Application` or `None`: The application
+            definition if it was found or `None` if the definition does not
+            exist.
         """
 
         raise NotImplementedError('Must be implemented by subclasses')
@@ -71,8 +73,8 @@ class Client(object):
             version (str): The version of the application
 
         Returns:
-            :obj:`application.Application` or `None`: The application definition
-            if it was successfully created.
+            :obj:`bigboat.application.Application` or `None`: The application
+            definition if it was successfully created.
         """
 
         raise NotImplementedError('Must be implemented by subclasses')
@@ -87,6 +89,61 @@ class Client(object):
 
         Returns:
             bool: Whether the application was successfully deleted.
+        """
+
+        raise NotImplementedError('Must be implemented by subclasses')
+
+    def instances(self):
+        """
+        Retrieve all live instances from the API.
+
+        Returns:
+            :obj:`list` of :obj:`bigboat.instance.Instance`
+        """
+
+        raise NotImplementedError('Must be implemented by subclasses')
+
+    def get_instance(self, name):
+        """
+        Retrieve a specific live instance from the API.
+
+        Args:
+            name (str): The name of the instance.
+
+        Returns:
+            :obj:`bigboat.instance.Instance` or `None`: The instance
+            if it was found or `None` if the instance does not exist.
+        """
+
+        raise NotImplementedError('Must be implemented by subclasses')
+
+    def update_instance(self, name, app_name, version, **kwargs):
+        """
+        Request the instance to be created with a desired state of 'running'.
+
+        Args:
+            name (str): The name of the instance to be started.
+            app_name (str): The name of the application to be started.
+            version (str): The version of the application to be started.
+            **kwargs: Additional properties to use when starting the instance.
+
+        Returns:
+            :obj:`bigboat.instance.Instance` or `None`: The instance
+            if it was started or `None` if the instance failed to start.
+        """
+
+        raise NotImplementedError('Must be implemented by subclasses')
+
+    def delete_instance(self, name):
+        """
+        Retrieve a specific live instance from the API.
+
+        Args:
+            name (str): The name of the instance.
+
+        Returns:
+            :obj:`bigboat.instance.Instance` or `None`: The instance
+            if it was found or `None` if the instance does not exist.
         """
 
         raise NotImplementedError('Must be implemented by subclasses')
@@ -133,6 +190,42 @@ class Client_v1(Client):
 
         return request.status_code == 200
 
+    def instances(self):
+        request = self._get('instances')
+
+        if request.status_code == 404:
+            return []
+
+        data = request.json()
+        return [Instance(self, name) for name in data['instances']]
+
+    def get_instance(self, name):
+        request = self._get('state/{}'.format(name))
+
+        if request.status_code == 404:
+            return []
+
+        state = 'running' if request.text == 'active' else request.text
+
+        return Instance(self, name, state)
+
+    def update_instance(self, name, app_name, version, **kwargs):
+        request = self._get('start-app/{}/{}/{}'.format(app_name, version, name))
+
+        if request.status_code == 404:
+            return None
+
+        return Instance(self, name, 'running',
+                        application=Application(self, app_name, version))
+
+    def delete_instance(self, name):
+        request = self._get('stop-app/{}'.format(name))
+
+        if request.status_code == 404:
+            return None
+
+        return Instance(self, name, 'created')
+
 class Client_v2(Client):
     """
     Client for the BigBoat v2 API.
@@ -160,6 +253,13 @@ class Client_v2(Client):
 
     def _delete(self, path):
         return self._session.delete(self._format_url(path))
+
+    @staticmethod
+    def _check_bad_request(request):
+        # Bad Request should raise an exception
+        if request.status_code == 400:
+            response = request.json()
+            raise ValueError(response['message'])
 
     def _format_app(self, app):
         return Application(self, app['name'], app['version'])
@@ -237,12 +337,61 @@ class Client_v2(Client):
         if request.status_code == 404:
             return False
 
-        # Bad Request should raise an exception
-        if request.status_code == 400:
-            response = request.json()
-            raise ValueError(response['message'])
+        self._check_bad_request(request)
 
         if request.status_code != 201:
             return False
 
         return True
+
+    def _format_instance(self, instance, name=None):
+        if 'app' in instance:
+            if name is not None:
+                application = Application(self, instance['app'],
+                                          instance['version'])
+            else:
+                application = self._format_app(instance['app'])
+        else:
+            application = None
+
+        services = instance.get('services')
+
+        if 'name' in instance:
+            name = instance['name']
+
+        return Instance(self, name, instance['state']['current'],
+                        desired_state=instance['state']['desired'],
+                        application=application, services=services)
+
+    def instances(self):
+        request = self._get('instances')
+        return [self._format_instance(instance) for instance in request.json()]
+
+    def get_instance(self, name):
+        request = self._get('instances/{}'.format(name))
+
+        if request.status_code == 404:
+            return None
+
+        return self._format_instance(request.json())
+
+    def update_instance(self, name, app_name, version, **kwargs):
+        data = {
+            'app': app_name,
+            'version': version,
+            'parameters': kwargs.get('parameters') or {},
+            'options': kwargs.get('options') or {}
+        }
+        request = self._put('instances/{}'.format(name),
+                            content_type='application/json', data=data)
+
+        self._check_bad_request(request)
+
+        return self._format_instance(request.json())
+
+    def delete_instance(self, name):
+        request = self._delete('instances/{}'.format(name))
+
+        self._check_bad_request(request)
+
+        return self._format_instance(request.json())

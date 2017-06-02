@@ -32,10 +32,39 @@ class Application(Entity):
         self._version = version
 
     def update(self):
-        self.client.update_app(self.name, self.version)
+        """
+        Register the application definition in the BigBoat API.
+        """
+
+        return self.client.update_app(self.name, self.version)
 
     def delete(self):
-        self.client.delete_app(self.name, self.version)
+        """
+        Delete the application definition in the BigBoat API.
+        """
+
+        return self.client.delete_app(self.name, self.version)
+
+    def start(self, name=None, **kwargs):
+        """
+        Request an instance to be created with a desired state of 'running'
+        for this application.
+
+        Args:
+            name (:obj:`str` or `None`): The name of the instance to be
+                started, or `None` to use the application name.
+            **kwargs: Additional properties to use when starting the instance.
+
+        Returns:
+            :obj:`bigboat.instance.Instance` or `None`: The instance
+            if it was started or `None` if the instance failed to start.
+        """
+
+        if name is None:
+            name = self.name
+
+        return self.client.update_instance(name, self.name, self.version,
+                                           **kwargs)
 
     def __repr__(self):
         return 'Application(name={!r}, version={!r})'.format(self.name, self.version)

@@ -31,6 +31,10 @@ class Entity(object):
         """
         Send the data of the entity as an update for its properties to the
         BigBoat API. The entity calls the relevant update method of the client.
+
+        Returns:
+            :obj:`bigboat.entity.Entity` or `None`: The updated entity object
+            from the API response if it was successfully updated.
         """
 
         raise NotImplementedError('Must be implemented by subclasses')
@@ -39,6 +43,9 @@ class Entity(object):
         """
         Delete the entity from the BigBoat API. The entity calls the relevant
         update method of the client.
+
+        Returns:
+            bool: Whether the entity was successfully deleted.
         """
 
         raise NotImplementedError('Must be implemented by subclasses')
