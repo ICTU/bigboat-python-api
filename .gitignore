@@ -1,6 +1,7 @@
 .idea
 .DS_Store
 *~
+*.cfg
 *.pyc
 *.swp
 build
