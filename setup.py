@@ -21,10 +21,10 @@ limitations under the License.
 from pip.download import PipSession
 from pip.req import parse_requirements
 from setuptools import setup, find_packages
-from bigboat import VERSION
+from bigboat import __version__
 
 setup(name='bigboat',
-      version=VERSION,
+      version=__version__,
       description='BigBoat docker dashboard API',
       long_description='''Python wrapper library for the BigBoat API.
 Support for v2 and the deprecated v1 is included.
@@ -35,7 +35,7 @@ do similar operations for instances and poll for status''',
       url='https://github.com/ICTU/bigboat-python-api',
       license='Apache License, Version 2.0',
       packages=find_packages(),
-      scripts=['bigboat-cli.py'],
+      scripts=[],
       include_package_data=True,
       install_requires=[
           str(requirement.req)
