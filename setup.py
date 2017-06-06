@@ -18,6 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from builtins import str
 from pip.download import PipSession
 from pip.req import parse_requirements
 from setuptools import setup, find_packages

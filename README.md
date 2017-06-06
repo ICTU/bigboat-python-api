@@ -12,6 +12,7 @@ included.
 See `requirements.txt` for the list of requirements. The short list is also 
 repeated here:
 
+- [Future](http://python-future.org/overview.html)
 - [Requests](http://docs.python-requests.org/en/master/user/install/)
 - [PyYAML](http://pyyaml.org/wiki/PyYAMLDocumentation)
 

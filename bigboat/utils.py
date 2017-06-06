@@ -16,8 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import types
 from functools import partial
+from past.builtins import basestring
 
 def readonly(*args, **kwargs):
     """
@@ -36,7 +36,7 @@ def readonly(*args, **kwargs):
         member properties.
     """
 
-    if args and not isinstance(args[0], types.StringTypes):
+    if args and not isinstance(args[0], basestring):
         properties = args[0]
     else:
         properties = args
