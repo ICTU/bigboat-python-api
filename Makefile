@@ -2,7 +2,7 @@
 all: release
 
 .PHONY: release
-release: build tag push upload
+release: clean tag build push upload
 
 .PHONY: setup
 setup:
@@ -30,3 +30,7 @@ push: get_version
 .PHONY: upload
 upload:
 	twine upload dist/*
+
+.PHONY: clean
+clean:
+	rm -rf build/ dist/ bigboat.egg-info
