@@ -55,3 +55,17 @@ class Instance(Entity):
         """
 
         return self.client.delete_instance(self.name)
+
+    def __repr__(self):
+        parts = [
+            ('name', self.name),
+            ('current_state', self.current_state),
+            ('desired_state', self.desired_state),
+            ('application', self.application),
+            ('services', self.services),
+            ('parameters', self.parameters),
+            ('options', self.options)
+        ]
+        properties = ['{}={!r}'.format(key, value) for (key, value) in parts]
+
+        return 'Instance({})'.format(', '.join(properties))
