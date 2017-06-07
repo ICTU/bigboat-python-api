@@ -2,7 +2,7 @@
 all: release
 
 .PHONY: release
-release: clean tag build push upload
+release: pylint clean tag build push upload
 
 .PHONY: setup
 setup:
@@ -13,6 +13,10 @@ setup:
 get_version: 
 	$(eval VERSION=v$(shell python setup.py --version))
 	python setup.py --version
+
+.PHONY: pylint
+pylint:
+	pylint *.py bigboat/*.py
 
 .PHONY: tag
 tag: get_version
