@@ -260,8 +260,11 @@ class Client_v2(Client):
     def _check_bad_request(request):
         # Bad Request should raise an exception
         if request.status_code == 400:
-            response = request.json()
-            raise ValueError(response['message'])
+            if request.headers['Content-Type'] == 'application/json':
+                response = request.json()
+                raise ValueError(response['message'])
+            else:
+                raise ValueError(request.text)
 
     def _format_app(self, app):
         return Application(self, app['name'], app['version'])
