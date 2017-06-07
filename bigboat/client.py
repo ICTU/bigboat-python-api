@@ -245,13 +245,15 @@ class Client_v2(Client):
     def _get(self, path):
         return self._session.get(self._format_url(path))
 
-    def _put(self, path, content_type=None, data=None):
+    def _put(self, path, content_type=None, data=None, json=None):
         headers = {}
         if content_type is not None:
             headers['Content-Type'] = content_type
+        elif json is not None:
+            headers['Content-Type'] = 'application/json'
 
         return self._session.put(self._format_url(path), headers=headers,
-                                 data=data)
+                                 data=data, json=json)
 
     def _delete(self, path):
         return self._session.delete(self._format_url(path))
@@ -387,8 +389,7 @@ class Client_v2(Client):
             'parameters': kwargs.get('parameters') or {},
             'options': kwargs.get('options') or {}
         }
-        request = self._put('instances/{}'.format(name),
-                            content_type='application/json', data=data)
+        request = self._put('instances/{}'.format(name), json=data)
 
         self._check_bad_request(request)
 
