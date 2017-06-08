@@ -67,3 +67,56 @@ def readonly(*args, **kwargs):
         return subject
 
     return decorator
+
+class Inherited(object):
+    """
+    Indicate that an inherited method whose parent method has documentation.
+    """
+
+    def __init__(self, method):
+        self._method = method
+
+    def __get__(self, im_self, im_class):
+        if im_self is not None:
+            overridden = self.get_object_parent(im_class, im_self)
+        else:
+            overridden = self.get_class_parent(im_class)
+
+        if overridden is not None:
+            self._method.__doc__ = overridden.__doc__
+
+        return self._method
+
+    def get_object_parent(self, im_class, im_self):
+        """
+        Determine the parent method using the class and instance context.
+
+        Args:
+            im_class: The method's class instance.
+            im_self: The method's bound object instance.
+
+        Returns:
+            The parent method or `None` if it was not found.
+        """
+
+        parent = super(im_class, im_self)
+        return getattr(parent, self._method.__name__, None)
+
+    def get_class_parent(self, im_class):
+        """
+        Determine the parent method using the class context.
+
+        Args:
+            im_class: The method's class instance.
+
+        Returns:
+            The parent method or `None` if it was not found.
+        """
+
+        parents = im_class.__mro__[1:]
+        for parent in parents:
+            overridden = getattr(parent, self._method.__name__, None)
+            if overridden is not None:
+                return overridden
+
+        return None

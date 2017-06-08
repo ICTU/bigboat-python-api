@@ -22,6 +22,7 @@ import requests
 import yaml
 from .application import Application
 from .instance import Instance
+from .utils import Inherited as inherit
 
 class Client(object):
     """
@@ -167,9 +168,11 @@ class Client_v1(Client):
     def _delete(self, path):
         return requests.delete(self._format_url(path))
 
+    @inherit
     def apps(self):
         return []
 
+    @inherit
     def get_app(self, name, version):
         try:
             request = self._get('appdef/{}/{}'.format(name, version))
@@ -180,10 +183,12 @@ class Client_v1(Client):
 
         return Application(self, document['name'], str(document['version']))
 
+    @inherit
     def update_app(self, name, version):
         # Cannot create new apps through v1 API
         return None
 
+    @inherit
     def delete_app(self, name, version):
         request = self._delete('appdef/{}/{}'.format(name, version))
 
@@ -192,6 +197,7 @@ class Client_v1(Client):
 
         return request.status_code == 200
 
+    @inherit
     def instances(self):
         request = self._get('instances')
 
@@ -201,6 +207,7 @@ class Client_v1(Client):
         data = request.json()
         return [Instance(self, name) for name in data['instances']]
 
+    @inherit
     def get_instance(self, name):
         request = self._get('state/{}'.format(name))
 
@@ -211,6 +218,7 @@ class Client_v1(Client):
 
         return Instance(self, name, state)
 
+    @inherit
     def update_instance(self, name, app_name, version, **kwargs):
         request = self._get('start-app/{}/{}/{}'.format(app_name, version, name))
 
@@ -220,6 +228,7 @@ class Client_v1(Client):
         return Instance(self, name, 'running',
                         application=Application(self, app_name, version))
 
+    @inherit
     def delete_instance(self, name):
         request = self._get('stop-app/{}'.format(name))
 
@@ -271,10 +280,12 @@ class Client_v2(Client):
     def _format_app(self, app):
         return Application(self, app['name'], app['version'])
 
+    @inherit
     def apps(self):
         request = self._get('apps')
         return [self._format_app(app) for app in request.json()]
 
+    @inherit
     def get_app(self, name, version):
         request = self._get('apps/{}/{}'.format(name, version))
         if request.status_code == 404:
@@ -282,6 +293,7 @@ class Client_v2(Client):
 
         return self._format_app(request.json())
 
+    @inherit
     def update_app(self, name, version):
         try:
             request = self._put('apps/{}/{}'.format(name, version))
@@ -290,6 +302,7 @@ class Client_v2(Client):
 
         return self._format_app(request.json())
 
+    @inherit
     def delete_app(self, name, version):
         request = self._delete('apps/{}/{}'.format(name, version))
         if request.status_code == 404:
@@ -370,10 +383,12 @@ class Client_v2(Client):
                         desired_state=instance['state']['desired'],
                         application=application, services=services)
 
+    @inherit
     def instances(self):
         request = self._get('instances')
         return [self._format_instance(instance) for instance in request.json()]
 
+    @inherit
     def get_instance(self, name):
         request = self._get('instances/{}'.format(name))
 
@@ -382,6 +397,7 @@ class Client_v2(Client):
 
         return self._format_instance(request.json())
 
+    @inherit
     def update_instance(self, name, app_name, version, **kwargs):
         data = {
             'app': app_name,
@@ -395,6 +411,7 @@ class Client_v2(Client):
 
         return self._format_instance(request.json())
 
+    @inherit
     def delete_instance(self, name):
         request = self._delete('instances/{}'.format(name))
 
