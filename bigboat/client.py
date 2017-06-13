@@ -225,7 +225,7 @@ class Client_v1(Client):
         if request.status_code == 404:
             return None
 
-        return Instance(self, name, 'running',
+        return Instance(self, name, current_state='running',
                         application=Application(self, app_name, version))
 
     @inherit
@@ -379,8 +379,11 @@ class Client_v2(Client):
         if 'name' in instance:
             name = instance['name']
 
-        return Instance(self, name, instance['state']['current'],
-                        desired_state=instance['state']['desired'],
+        state = instance.get('state', {})
+
+        return Instance(self, name,
+                        current_state=state.get('current', 'running'),
+                        desired_state=state.get('desired'),
                         application=application, services=services)
 
     @inherit
