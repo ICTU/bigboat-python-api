@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from functools import partial
+from functools import partial, wraps, WRAPPER_ASSIGNMENTS
 from past.builtins import basestring
 
 def readonly(*args, **kwargs):
@@ -71,21 +71,27 @@ def readonly(*args, **kwargs):
 class Inherited(object):
     """
     Indicate that an inherited method whose parent method has documentation.
+
+    This solution is based on the 'Docstring inheritance decorator' Python
+    recipe from http://code.activestate.com/recipes/576862/ which is licensed
+    under the MIT License (but none of the code was used verbatim).
     """
+
+    _wrappers = tuple(prop for prop in WRAPPER_ASSIGNMENTS if prop != '__doc__')
 
     def __init__(self, method):
         self._method = method
 
     def __get__(self, im_self, im_class):
         if im_self is not None:
-            overridden = self.get_object_parent(im_class, im_self)
+            method, overridden = self.get_object_parent(im_class, im_self)
         else:
-            overridden = self.get_class_parent(im_class)
+            method, overridden = self.get_class_parent(im_class)
 
         if overridden is not None:
-            self._method.__doc__ = overridden.__doc__
+            method.__doc__ = overridden.__doc__
 
-        return self._method
+        return method
 
     def get_object_parent(self, im_class, im_self):
         """
@@ -96,11 +102,21 @@ class Inherited(object):
             im_self: The method's bound object instance.
 
         Returns:
-            The parent method or `None` if it was not found.
+            A tuple:
+            - The wrapped method.
+            - The parent method or `None` if it was not found.
         """
 
+        @wraps(self._method, assigned=self._wrappers)
+        def wrapper(*args, **kwargs):
+            """
+            Wrapper for the actual method.
+            """
+
+            return self._method(im_self, *args, **kwargs)
+
         parent = super(im_class, im_self)
-        return getattr(parent, self._method.__name__, None)
+        return wrapper, getattr(parent, self._method.__name__, None)
 
     def get_class_parent(self, im_class):
         """
@@ -110,13 +126,23 @@ class Inherited(object):
             im_class: The method's class instance.
 
         Returns:
-            The parent method or `None` if it was not found.
+            A tuple:
+            - The wrapped method.
+            - The parent method or `None` if it was not found.
         """
+
+        @wraps(self._method, assigned=self._wrappers)
+        def wrapper(*args, **kwargs):
+            """
+            Wrapper for the actual method.
+            """
+
+            return self._method(*args, **kwargs)
 
         parents = im_class.__mro__[1:]
         for parent in parents:
             overridden = getattr(parent, self._method.__name__, None)
             if overridden is not None:
-                return overridden
+                return wrapper, overridden
 
-        return None
+        return wrapper, None

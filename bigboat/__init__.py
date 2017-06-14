@@ -18,4 +18,4 @@ limitations under the License.
 
 from .client import Client_v1, Client_v2
 
-__version__ = '0.2.4'
+__version__ = '0.2.5'
