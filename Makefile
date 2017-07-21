@@ -1,3 +1,5 @@
+TEST=-m unittest discover -s tests -p '*.py'
+
 .PHONY: all
 all: release
 
@@ -35,6 +37,15 @@ push: get_version
 upload:
 	twine upload dist/*
 
+.PHONY: test
+test:
+	python $(TEST)
+
+.PHONY: coverage
+coverage:
+	coverage run $(TEST)
+	coverage report -m
+
 .PHONY: clean
 clean:
-	rm -rf build/ dist/ bigboat.egg-info
+	rm -rf build/ dist/ bigboat.egg-info .coverage
