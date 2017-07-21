@@ -212,7 +212,7 @@ class Client_v1(Client):
         request = self._get('state/{}'.format(name))
 
         if request.status_code == 404:
-            return []
+            return None
 
         state = 'running' if request.text == 'active' else request.text
 
