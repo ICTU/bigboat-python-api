@@ -47,7 +47,8 @@ class Instance(Entity):
 
         return self.client.update_instance(self.name, self.application.name,
                                            self.application.version,
-                                           self.parameters, self.options)
+                                           parameters=self.parameters,
+                                           options=self.options)
 
     def delete(self):
         """
