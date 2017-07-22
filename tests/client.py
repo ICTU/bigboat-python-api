@@ -308,7 +308,7 @@ www:
                                status_code=404)
         self.requests_mock.get(url + 'apps/nginx/latest/files/notUsed',
                                headers={'Content-Type': 'text/html'},
-                               text='<html><body>Not such path</body></html')
+                               text='<html><body>No such path</body></html')
         self.requests_mock.get(url + 'apps/nginx/latest/files/bigboatCompose',
                                headers={'Content-Type': 'text/plain'},
                                text=content)
@@ -346,12 +346,16 @@ www:
         """
 
         url = self.URL + self.PATH
+        self.requests_mock.put(url + 'apps/does/notexist/files/dockerCompose',
+                               status_code=404)
         self.requests_mock.put(url + 'apps/nginx/latest/files/notUsed',
                                headers={'Content-Type': 'text/html'},
-                               text='<html><body>Not such path</body></html')
+                               text='<html><body>No such path</body></html')
         self.requests_mock.put(url + 'apps/nginx/latest/files/bigboatCompose',
                                text=self._put_bigboat_compose_handler)
 
+        self.assertFalse(self.client.update_compose('does', 'notexist',
+                                                    'dockerCompose', 'x: y'))
         self.assertFalse(self.client.update_compose('nginx', 'latest',
                                                     'notUsed', 'x: y'))
         with self.assertRaises(ValueError):

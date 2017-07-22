@@ -162,9 +162,6 @@ class Client_v1(Client):
     def _get(self, path):
         return requests.get(self._format_url(path))
 
-    def _post(self, path, body=None):
-        return requests.post(self._format_url(path), data=body)
-
     def _delete(self, path):
         return requests.delete(self._format_url(path))
 
@@ -368,24 +365,17 @@ class Client_v2(Client):
 
         return True
 
-    def _format_instance(self, instance, name=None):
+    def _format_instance(self, instance):
         if 'app' in instance:
-            if name is not None:
-                application = Application(self, instance['app'],
-                                          instance['version'])
-            else:
-                application = self._format_app(instance['app'])
+            application = self._format_app(instance['app'])
         else:
             application = None
 
         services = instance.get('services')
 
-        if 'name' in instance:
-            name = instance['name']
-
         state = instance.get('state', {})
 
-        return Instance(self, name,
+        return Instance(self, instance.get('name'),
                         current_state=state.get('current', 'running'),
                         desired_state=state.get('desired'),
                         application=application, services=services)
