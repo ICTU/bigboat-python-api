@@ -347,9 +347,13 @@ class Client_v2(Client):
             content (str): The file contents
 
         Returns:
-            bool: Whether the compose fille was successfully updated.
+            bool: Whether the compose file was successfully updated.
 
         Raises:
+            ValueError: When the compose file could not be parsed as a valid
+            YAML file.
+            ValueError: When the bigboatCompose file contains name or version
+            properties that do not match the provided application name/verison.
         """
 
         path = 'apps/{}/{}/files/{}'.format(name, version, file_name)

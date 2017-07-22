@@ -16,9 +16,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import json
 import unittest
 import requests
 import requests_mock
+import yaml
 from bigboat.client import Client, Client_v1, Client_v2
 
 class Client_Test(unittest.TestCase):
@@ -39,7 +41,7 @@ class Client_Test(unittest.TestCase):
         """
 
         # The base_url should return an URL without trailing slash.
-        self.assertEquals(self.client.base_url, self.CANONICAL_URL)
+        self.assertEqual(self.client.base_url, self.CANONICAL_URL)
 
     def test_interface(self):
         """
@@ -208,8 +210,355 @@ class Client_v2_Test(RequestsTestCase):
     """
 
     URL = 'http://dashboard.example/'
+    PATH = 'api/v2/'
     KEY = 'my-api-key'
 
     def setUp(self):
+        super(Client_v2_Test, self).setUp()
         self.client = Client_v2(self.URL, self.KEY)
-        self.fail('not yet implemented')
+
+    def test_apps(self):
+        """
+        Test the Client_v2.apps method.
+        """
+
+        self.requests_mock.get(self.URL + self.PATH + 'apps',
+                               json=[
+                                   {
+                                       "id": "ERfrBncoPKSN9ampt",
+                                       "name": "nginx",
+                                       "version": "latest"
+                                   },
+                                   {
+                                       "id": "LENn6QcjnG8WRvAxf",
+                                       "name": "nginx",
+                                       "version": "1.11.4"
+                                   }
+                               ])
+
+        apps = self.client.apps()
+        app_pairs = list(sorted((app.name, app.version) for app in apps))
+        self.assertEqual(app_pairs, [('nginx', '1.11.4'), ('nginx', 'latest')])
+
+    def test_get_app(self):
+        """
+        Test the Client_v2.get_app method.
+        """
+
+        self.requests_mock.get(self.URL + self.PATH + 'apps/does/notexist',
+                               status_code=404)
+        self.requests_mock.get(self.URL + self.PATH + 'apps/nginx/latest',
+                               json={
+                                   "id": "MKMZCnLcEJmkjSenJ",
+                                   "name": "nginx",
+                                   "version": "latest"
+                               })
+
+        self.assertIsNone(self.client.get_app('does', 'notexist'))
+
+        app = self.client.get_app('nginx', 'latest')
+        self.assertEqual(app.name, 'nginx')
+        self.assertEqual(app.version, 'latest')
+
+    def test_update_app(self):
+        """
+        Test the Client_v2.update_app method.
+        """
+
+        self.requests_mock.put(self.URL + self.PATH + 'apps/%3Cfoo%3E/0',
+                               exc=requests.exceptions.ConnectionError)
+        self.requests_mock.put(self.URL + self.PATH + 'apps/nginx/latest',
+                               status_code=201,
+                               json={
+                                   "id": "MKMZCnLcEJmkjSenJ",
+                                   "name": "nginx",
+                                   "version": "latest"
+                               })
+
+        self.assertIsNone(self.client.update_app('<foo>', '0'))
+        app = self.client.update_app('nginx', 'latest')
+        self.assertEqual(app.name, 'nginx')
+        self.assertEqual(app.version, 'latest')
+
+    def test_delete_app(self):
+        """
+        Test the Client_v2.delete_app method.
+        """
+
+        self.requests_mock.delete(self.URL + self.PATH + 'apps/does/notexist',
+                                  status_code=404)
+        self.requests_mock.delete(self.URL + self.PATH + 'apps/nginx/latest',
+                                  status_code=204)
+
+        self.assertFalse(self.client.delete_app('does', 'notexist'))
+        self.assertTrue(self.client.delete_app('nginx', 'latest'))
+
+    def test_get_compose(self):
+        """
+        Test the Client_v2.get_compose method.
+        """
+
+        url = self.URL + self.PATH
+        content = '''name: nginx
+version: latest
+
+www:
+  enable_ssh: true'''
+        self.requests_mock.get(url + 'apps/does/notexist/files/dockerCompose',
+                               status_code=404)
+        self.requests_mock.get(url + 'apps/nginx/latest/files/notUsed',
+                               headers={'Content-Type': 'text/html'},
+                               text='<html><body>Not such path</body></html')
+        self.requests_mock.get(url + 'apps/nginx/latest/files/bigboatCompose',
+                               headers={'Content-Type': 'text/plain'},
+                               text=content)
+
+        self.assertIsNone(self.client.get_compose('does', 'notexist',
+                                                  'dockerCompose'))
+        self.assertIsNone(self.client.get_compose('nginx', 'latest', 'notUsed'))
+        self.assertEqual(self.client.get_compose('nginx', 'latest',
+                                                 'bigboatCompose'), content)
+
+    @staticmethod
+    def _put_bigboat_compose_handler(request, context):
+        yaml_file = request.body
+        try:
+            data = yaml.load(yaml_file)
+        except yaml.error.YAMLError as yaml_error:
+            context.status_code = 400
+            context.headers = 'text/plain'
+            return "Problem asserting validity of YAML: {}".format(yaml_error)
+
+        if data['name'] != 'nginx':
+            context.status_code = 400
+            context.headers['content-type'] = 'application/json'
+            return json.dumps({
+                'message': 'Name property of Bigboat compose needs to be equal '
+                           'to name property of App'
+            })
+
+        context.status_code = 201
+        return yaml_file
+
+    def test_update_compose(self):
+        """
+        Test the Client_v2.update_compose method.
+        """
+
+        url = self.URL + self.PATH
+        self.requests_mock.put(url + 'apps/nginx/latest/files/notUsed',
+                               headers={'Content-Type': 'text/html'},
+                               text='<html><body>Not such path</body></html')
+        self.requests_mock.put(url + 'apps/nginx/latest/files/bigboatCompose',
+                               text=self._put_bigboat_compose_handler)
+
+        self.assertFalse(self.client.update_compose('nginx', 'latest',
+                                                    'notUsed', 'x: y'))
+        with self.assertRaises(ValueError):
+            self.client.update_compose('nginx', 'latest', 'bigboatCompose', ':')
+        with self.assertRaises(ValueError):
+            self.client.update_compose('nginx', 'latest', 'bigboatCompose',
+                                       'name: somethingElse\nversion: latest')
+
+        content = '''name: nginx
+version: latest
+
+www:
+  enable_ssh: true'''
+        self.assertTrue(self.client.update_compose('nginx', 'latest',
+                                                   'bigboatCompose', content))
+
+    def test_instances(self):
+        """
+        Test the Client_v2.instances method.
+        """
+
+        self.requests_mock.get(self.URL + self.PATH + 'instances',
+                               json=[
+                                   {
+                                       "id": "y7bzwghzP9ouM56g6",
+                                       "name": "nginx",
+                                       "state": {
+                                           "current": "running",
+                                           "desired": "running"
+                                       }
+                                   },
+                                   {
+                                       "id": "ySYXNTPw2ry9XE6nu",
+                                       "name": "nginx2",
+                                       "state": {
+                                           "current": "starting",
+                                           "desired": "running"
+                                       }
+                                   }
+                               ])
+
+        instances = self.client.instances()
+        instance_data = list(sorted([
+            (instance.name, instance.current_state, instance.desired_state)
+            for instance in instances
+        ]))
+        self.assertEqual(instance_data, [
+            ('nginx', 'running', 'running'),
+            ('nginx2', 'starting', 'running')
+        ])
+
+    def test_get_instance(self):
+        """
+        Test the Client_v2.get_instance method.
+        """
+
+        self.requests_mock.get(self.URL + self.PATH + 'instances/qux',
+                               status_code=404)
+        self.requests_mock.get(self.URL + self.PATH + 'instances/nginx',
+                               json={
+                                   "id": "y7bzwghzP9ouM56g6",
+                                   "name": "nginx",
+                                   "state": {
+                                       "current": "starting",
+                                       "desired": "running"
+                                   },
+                                   "app": {
+                                       "name": "nginx",
+                                       "version": "latest"
+                                   },
+                                   "services": {
+                                       "www": {
+                                           "state": "starting"
+                                       }
+                                   }
+                               })
+
+        self.assertIsNone(self.client.get_instance('qux'))
+        instance = self.client.get_instance('nginx')
+        self.assertEqual(instance.name, 'nginx')
+        self.assertEqual(instance.current_state, 'starting')
+        self.assertEqual(instance.desired_state, 'running')
+        self.assertEqual(instance.application.name, 'nginx')
+        self.assertEqual(instance.application.version, 'latest')
+        self.assertEqual(instance.services, {'www': {'state': 'starting'}})
+
+    def test_update_instance(self):
+        """
+        Test the Client_v2.update_instance method.
+        """
+
+        self.requests_mock.put(self.URL + self.PATH + 'instances/error',
+                               status_code=400, text='error',
+                               headers={'content-type': 'text/plain'})
+        self.requests_mock.put(self.URL + self.PATH + 'instances/nginx',
+                               json={
+                                   "id": "y7bzwghzP9ouM56g6",
+                                   "name": "nginx",
+                                   "state": {
+                                       "current": "starting",
+                                       "desired": "running"
+                                   },
+                                   "app": {
+                                       "name": "nginx",
+                                       "version": "latest"
+                                   },
+                                   "services": {
+                                       "www": {
+                                           "state": "starting"
+                                       }
+                                   }
+                               })
+
+        with self.assertRaises(ValueError):
+            self.client.update_instance('error', 'does', 'notexist')
+
+        instance = self.client.update_instance('nginx', 'nginx', 'latest',
+                                               parameters={
+                                                   "SETTING": "value"
+                                               },
+                                               options={
+                                                   "storageBucket": "custom"
+                                               })
+
+        self.assertEqual(instance.name, 'nginx')
+        self.assertEqual(instance.application.name, 'nginx')
+        self.assertEqual(instance.application.version, 'latest')
+        self.assertEqual(instance.current_state, 'starting')
+        self.assertEqual(instance.desired_state, 'running')
+        self.assertEqual(instance.services, {'www': {'state': 'starting'}})
+
+    def test_delete_instance(self):
+        """
+        Test the Client_v2.delete_instance method.
+        """
+
+        self.requests_mock.delete(self.URL + self.PATH + 'instances/error',
+                                  status_code=400, text='error',
+                                  headers={'content-type': 'text/plain'})
+        self.requests_mock.delete(self.URL + self.PATH + 'instances/nginx',
+                                  json={
+                                      "id": "y7bzwghzP9ouM56g6",
+                                      "name": "nginx",
+                                      "state": {
+                                          "current": "stopping",
+                                          "desired": "stopped"
+                                      },
+                                      "app": {
+                                          "name": "nginx",
+                                          "version": "latest"
+                                      },
+                                      "services": {
+                                          "www": {
+                                              "state": "stopping"
+                                          }
+                                      }
+                                  })
+
+        with self.assertRaises(ValueError):
+            self.client.delete_instance('error')
+
+        instance = self.client.delete_instance('nginx')
+        self.assertEqual(instance.name, 'nginx')
+        self.assertEqual(instance.application.name, 'nginx')
+        self.assertEqual(instance.application.version, 'latest')
+        self.assertEqual(instance.current_state, 'stopping')
+        self.assertEqual(instance.desired_state, 'stopped')
+        self.assertEqual(instance.services, {'www': {'state': 'stopping'}})
+
+    def test_statuses(self):
+        """
+        Test the Client_v2.statuses method.
+        """
+
+        content = [
+            {
+                "name": "Available IPs",
+                "lastCheck": {
+                    "time": 1494245442228,
+                    "ISO": "2017-05-08T12:10:42.228Z"
+                },
+                "description": "Total number of IPs: 190. IPs in use: 19. "
+                               "<strong>Available IPs: 171</strong>",
+                "details": {
+                    "totalIps": 190,
+                    "usedIps": 19
+                },
+                "isOk": True
+            },
+            {
+                "name": "Docker graph: /var/lib/docker",
+                "lastCheck": {
+                    "time": 1494245487722,
+                    "ISO": "2017-05-08T12:11:27.722Z"
+                },
+                "description": "Total size: 218.2 GB. "
+                               "<strong>Available: 96.3 GB</strong>",
+                "details": {
+                    "total": 234322399232,
+                    "used": 130956759040,
+                    "free": 103365640192
+                },
+                "isOk": True
+            },
+        ]
+
+        self.requests_mock.get(self.URL + self.PATH + 'status',
+                               json=content)
+
+        self.assertEqual(self.client.statuses(), content)
