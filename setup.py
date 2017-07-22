@@ -35,7 +35,7 @@ do similar operations for instances and poll for status''',
       author_email='leon.helwerda@ictu.nl',
       url='https://github.com/ICTU/bigboat-python-api',
       license='Apache License, Version 2.0',
-      packages=find_packages(),
+      packages=find_packages(exclude=['tests*']),
       scripts=[],
       include_package_data=True,
       install_requires=[
