@@ -84,11 +84,14 @@ class Inherited(object):
 
     def __get__(self, im_self, im_class):
         if im_self is not None:
-            method, overridden = self.get_object_parent(im_class, im_self)
+            method, overridden, doc = self.get_object_parent(im_class, im_self)
         else:
-            method, overridden = self.get_class_parent(im_class)
+            method, overridden, doc = self.get_class_parent(im_class)
 
-        if overridden is not None:
+        # Prefer original documentation from the inheriting method.
+        if doc is not None:
+            method.__doc__ = doc
+        elif overridden is not None:
             method.__doc__ = overridden.__doc__
 
         return method
@@ -105,6 +108,8 @@ class Inherited(object):
             A tuple:
             - The wrapped method.
             - The parent method or `None` if it was not found.
+            - The original documentation of the method or `None` if there is no
+              documentation on the inheriting method.
         """
 
         @wraps(self._method, assigned=self._wrappers)
@@ -116,7 +121,8 @@ class Inherited(object):
             return self._method(im_self, *args, **kwargs)
 
         parent = super(im_class, im_self)
-        return wrapper, getattr(parent, self._method.__name__, None)
+        overridden = getattr(parent, self._method.__name__, None)
+        return wrapper, overridden, self._method.__doc__
 
     def get_class_parent(self, im_class):
         """
@@ -129,20 +135,26 @@ class Inherited(object):
             A tuple:
             - The wrapped method.
             - The parent method or `None` if it was not found.
+            - The original documentation of the method or `None` if there is no
+              documentation on the inheriting method.
         """
 
-        @wraps(self._method, assigned=self._wrappers)
+        func = self._method.__func__
+        name = func.__name__
+        doc = func.__doc__
+
+        @wraps(func, assigned=self._wrappers)
         def wrapper(*args, **kwargs):
             """
-            Wrapper for the actual method.
+            Wrapper for the actual function behind the classmehod.
             """
 
-            return self._method(*args, **kwargs)
+            return func(im_class, *args, **kwargs)
 
         parents = im_class.__mro__[1:]
         for parent in parents:
-            overridden = getattr(parent, self._method.__name__, None)
+            overridden = getattr(parent, name, None)
             if overridden is not None:
-                return wrapper, overridden
+                return wrapper, overridden, doc
 
-        return wrapper, None
+        return wrapper, None, doc
