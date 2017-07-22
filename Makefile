@@ -1,3 +1,4 @@
+COVERAGE=coverage
 TEST=-m unittest discover -s tests -p '*.py'
 
 .PHONY: all
@@ -43,8 +44,8 @@ test:
 
 .PHONY: coverage
 coverage:
-	coverage run $(TEST)
-	coverage report -m
+	$(COVERAGE) run $(TEST)
+	$(COVERAGE) report -m
 
 .PHONY: clean
 clean:

@@ -17,6 +17,9 @@ limitations under the License.
 """
 
 import unittest
+from mock import MagicMock
+from bigboat.client import Client
+from bigboat.application import Application
 
 class ApplicationTest(unittest.TestCase):
     """
@@ -24,4 +27,47 @@ class ApplicationTest(unittest.TestCase):
     """
 
     def setUp(self):
-        self.fail('not yet implemented')
+        self.client = MagicMock(spec_set=Client)
+        self.application = Application(self.client, 'nginx', 'latest')
+
+    def test_update(self):
+        """
+        Test the Application.update method.
+        """
+
+        value = self.application.update()
+        self.client.update_app.assert_called_once_with('nginx', 'latest')
+        self.assertEqual(value, self.client.update_app.return_value)
+
+    def test_delete(self):
+        """
+        Test the Application.delete method.
+        """
+
+        value = self.application.delete()
+        self.client.delete_app.assert_called_once_with('nginx', 'latest')
+        self.assertEqual(value, self.client.delete_app.return_value)
+
+    def test_start(self):
+        """
+        Test the Application.start method.
+        """
+
+        value = self.application.start()
+        self.client.update_instance.assert_called_once_with('nginx', 'nginx',
+                                                            'latest')
+        self.assertEqual(value, self.client.update_instance.return_value)
+
+        self.client.update_instance.reset_mock()
+        self.application.start('nginx2', options={'hi': 'y'})
+        self.client.update_instance.assert_called_once_with('nginx2', 'nginx',
+                                                            'latest',
+                                                            options={'hi': 'y'})
+
+    def test_repr(self):
+        """
+        Test the Application.__repr__ method.
+        """
+
+        self.assertEqual(repr(self.application),
+                         "Application(name='nginx', version='latest')")
