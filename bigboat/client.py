@@ -366,7 +366,7 @@ class Client_v2(Client):
         return True
 
     def _format_instance(self, instance):
-        if 'app' in instance:
+        if 'app' in instance and instance['app']:
             application = self._format_app(instance['app'])
         else:
             application = None
