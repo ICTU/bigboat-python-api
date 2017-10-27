@@ -274,17 +274,24 @@ class Client_v2(Client):
             else:
                 raise ValueError(request.text)
 
+        # Unauthorized should raise an exception
+        if request.status_code == 401:
+            response = request.json()
+            raise ValueError(response['message'])
+
     def _format_app(self, app):
         return Application(self, app['name'], app['version'])
 
     @inherit
     def apps(self):
         request = self._get('apps')
+        self._check_bad_request(request)
         return [self._format_app(app) for app in request.json()]
 
     @inherit
     def get_app(self, name, version):
         request = self._get('apps/{}/{}'.format(name, version))
+        self._check_bad_request(request)
         if request.status_code == 404:
             return None
 
@@ -297,11 +304,13 @@ class Client_v2(Client):
         except requests.exceptions.ConnectionError:
             return None
 
+        self._check_bad_request(request)
         return self._format_app(request.json())
 
     @inherit
     def delete_app(self, name, version):
         request = self._delete('apps/{}/{}'.format(name, version))
+        self._check_bad_request(request)
         if request.status_code == 404:
             return False
 
@@ -324,6 +333,7 @@ class Client_v2(Client):
 
         path = 'apps/{}/{}/files/{}'.format(name, version, file_name)
         request = self._get(path)
+        self._check_bad_request(request)
         if request.status_code == 404:
             return None
 
@@ -355,10 +365,9 @@ class Client_v2(Client):
 
         path = 'apps/{}/{}/files/{}'.format(name, version, file_name)
         request = self._put(path, content_type='text/plain', data=content)
+        self._check_bad_request(request)
         if request.status_code == 404:
             return False
-
-        self._check_bad_request(request)
 
         if request.status_code != 201:
             return False
@@ -383,11 +392,13 @@ class Client_v2(Client):
     @inherit
     def instances(self):
         request = self._get('instances')
+        self._check_bad_request(request)
         return [self._format_instance(instance) for instance in request.json()]
 
     @inherit
     def get_instance(self, name):
         request = self._get('instances/{}'.format(name))
+        self._check_bad_request(request)
 
         if request.status_code == 404:
             return None
@@ -424,4 +435,6 @@ class Client_v2(Client):
             :obj:`list` of :obj:`dict`: The status items
         """
 
-        return self._get('status').json()
+        request = self._get('status')
+        self._check_bad_request(request)
+        return request.json()

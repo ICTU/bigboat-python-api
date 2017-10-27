@@ -414,6 +414,8 @@ www:
 
         self.requests_mock.get(self.URL + self.PATH + 'instances/qux',
                                status_code=404)
+        self.requests_mock.get(self.URL + self.PATH + 'instances/no-api-key',
+                               status_code=401, json={"message": "No API key"})
         self.requests_mock.get(self.URL + self.PATH + 'instances/nginx',
                                json={
                                    "id": "y7bzwghzP9ouM56g6",
@@ -434,6 +436,9 @@ www:
                                })
 
         self.assertIsNone(self.client.get_instance('qux'))
+        with self.assertRaises(ValueError):
+            self.client.get_instance('no-api-key')
+
         instance = self.client.get_instance('nginx')
         self.assertEqual(instance.name, 'nginx')
         self.assertEqual(instance.current_state, 'starting')
