@@ -24,7 +24,7 @@ from pip.req import parse_requirements
 from setuptools import setup, find_packages
 
 setup(name='bigboat',
-      version='0.2.10',
+      version='0.2.11',
       description='BigBoat docker dashboard API',
       long_description='''Python wrapper library for the BigBoat API.
 Support for v2 and the deprecated v1 is included.
