@@ -22,10 +22,9 @@ from builtins import str
 from pip.download import PipSession
 from pip.req import parse_requirements
 from setuptools import setup, find_packages
-from bigboat import __version__
 
 setup(name='bigboat',
-      version=__version__,
+      version='0.2.10',
       description='BigBoat docker dashboard API',
       long_description='''Python wrapper library for the BigBoat API.
 Support for v2 and the deprecated v1 is included.

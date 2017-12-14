@@ -13,9 +13,26 @@ setup:
 	pip install setuptools wheel
 
 .PHONY: get_version
-get_version: 
-	$(eval VERSION=v$(shell python setup.py --version))
-	python setup.py --version
+get_version: get_setup_version get_init_version
+	if [ "${SETUP_VERSION}" != "${INIT_VERSION}" ]; then \
+		echo "Version mismatch"; \
+		exit 1; \
+	fi
+	$(eval VERSION=$(SETUP_VERSION))
+
+.PHONY: get_init_version
+get_init_version:
+	$(eval INIT_VERSION=v$(shell grep __version__ bigboat/__init__.py | sed -E "s/__version__ = .([0-9.]+)./\\1/"))
+	$(info Version in __init__.py: $(INIT_VERSION))
+	if [ -z "${INIT_VERSION}" ]; then \
+		echo "Could not parse version"; \
+		exit 1; \
+	fi
+
+.PHONY: get_setup_version
+get_setup_version:
+	$(eval SETUP_VERSION=v$(shell python setup.py --version))
+	$(info Version in setup.py: $(SETUP_VERSION))
 
 .PHONY: pylint
 pylint:

@@ -74,7 +74,8 @@ In addition to the common methods, v2 has the following API methods:
 - You can perform local lint checks, tests and coverage during development 
   using `make pylint`, `make test` and `make coverage`, respectively.
 - We publish releases to [PyPI](https://pypi.python.org/pypi/bigboat) using 
-  `make release` which performs lint and unit test checks.
+  `make release` which performs multiple checks: version number consistency, 
+  lint and unit tests.
 
 ## License
 
