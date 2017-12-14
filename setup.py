@@ -18,13 +18,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from builtins import str
+try:
+    from builtins import str
+except ImportError:
+    pass
 from pip.download import PipSession
 from pip.req import parse_requirements
 from setuptools import setup, find_packages
 
 setup(name='bigboat',
-      version='0.2.11',
+      version='0.2.12',
       description='BigBoat docker dashboard API',
       long_description='''Python wrapper library for the BigBoat API.
 Support for v2 and the deprecated v1 is included.
