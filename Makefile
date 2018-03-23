@@ -1,5 +1,5 @@
 COVERAGE=coverage
-TEST=-m unittest discover -s tests -p '*.py'
+TEST=test.py
 
 .PHONY: all
 all: release
@@ -61,8 +61,9 @@ test:
 
 .PHONY: coverage
 coverage:
-	$(COVERAGE) run $(TEST)
+	$(COVERAGE) run --branch --source=bigboat,tests $(TEST)
 	$(COVERAGE) report -m
+	$(COVERAGE) xml -i
 
 .PHONY: clean
 clean:

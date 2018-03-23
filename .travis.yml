@@ -10,5 +10,9 @@ install:
     - pip install coveralls
 script:
     - make coverage
+    - sonar-scanner -Dsonar.login=$SONAR_TOKEN
 after_success:
     - coveralls
+addons:
+    sonarcloud:
+        organization: ictu-gros
