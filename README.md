@@ -5,6 +5,8 @@
 Status](https://travis-ci.org/ICTU/bigboat-python-api.svg?branch=master)](https://travis-ci.org/ICTU/bigboat-python-api)
 [![Coverage 
 Status](https://coveralls.io/repos/github/ICTU/bigboat-python-api/badge.svg?branch=master)](https://coveralls.io/github/ICTU/bigboat-python-api?branch=master)
+[![Quality Gate 
+Status](https://sonarcloud.io/api/project_badges/measure?project=bigboat-python-api&metric=alert_status)](https://sonarcloud.io/dashboard?id=bigboat-python-api)
 
 Python wrapper library for the BigBoat API. This API can create, retrieve, 
 update and delete application definitions, do similar operations for instances 
