@@ -13,8 +13,8 @@ setup:
 	pip install setuptools wheel
 
 .PHONY: get_version
-get_version: get_setup_version get_init_version
-	if [ "${SETUP_VERSION}" != "${INIT_VERSION}" ]; then \
+get_version: get_setup_version get_init_version get_sonar_version
+	if [ "${SETUP_VERSION}" != "${INIT_VERSION}" ] || [ "${SETUP_VERSION}" != "${SONAR_VERSION}" ]; then \
 		echo "Version mismatch"; \
 		exit 1; \
 	fi
@@ -33,6 +33,11 @@ get_init_version:
 get_setup_version:
 	$(eval SETUP_VERSION=v$(shell python setup.py --version))
 	$(info Version in setup.py: $(SETUP_VERSION))
+
+.PHONY: get_sonar_version
+get_sonar_version:
+	$(eval SONAR_VERSION=v$(shell grep projectVersion sonar-project.properties | cut -d= -f2))
+	$(info Version in sonar-project.properties: $(SONAR_VERSION))
 
 .PHONY: pylint
 pylint:
