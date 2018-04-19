@@ -18,12 +18,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-try:
-    from builtins import str
-except ImportError:
-    pass
-from pip.download import PipSession
-from pip.req import parse_requirements
 from setuptools import setup, find_packages
 
 setup(name='bigboat',
@@ -41,9 +35,9 @@ do similar operations for instances and poll for status''',
       scripts=[],
       include_package_data=True,
       install_requires=[
-          str(requirement.req)
-          for requirement in parse_requirements('requirements.txt',
-                                                session=PipSession())
+          'future>=0.16.0',
+          'requests>=2.17.3',
+          'pyyaml>=3.12'
       ],
       test_suite='tests',
       classifiers=[
