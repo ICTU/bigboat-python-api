@@ -8,4 +8,5 @@ build
 dist
 bigboat.egg-info
 .coverage
+coverage.xml
 test-reports/
