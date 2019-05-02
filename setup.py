@@ -21,7 +21,7 @@ limitations under the License.
 from setuptools import setup, find_packages
 
 setup(name='bigboat',
-      version='0.2.12',
+      version='0.2.13',
       description='BigBoat docker dashboard API',
       long_description='''Python wrapper library for the BigBoat API.
 Support for v2 and the deprecated v1 is included.
