@@ -323,10 +323,10 @@ www:
     def _put_bigboat_compose_handler(request, context):
         yaml_file = request.body
         try:
-            data = yaml.load(yaml_file)
+            data = yaml.safe_load(yaml_file)
         except yaml.error.YAMLError as yaml_error:
             context.status_code = 400
-            context.headers = 'text/plain'
+            context.headers['content-type'] = 'text/plain'
             return "Problem asserting validity of YAML: {}".format(yaml_error)
 
         if data['name'] != 'nginx':

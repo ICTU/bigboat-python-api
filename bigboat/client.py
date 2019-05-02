@@ -176,7 +176,7 @@ class Client_v1(Client):
         except requests.exceptions.ConnectionError:
             return None
 
-        document = yaml.load(request.text)
+        document = yaml.safe_load(request.text)
 
         return Application(self, document['name'], str(document['version']))
 
